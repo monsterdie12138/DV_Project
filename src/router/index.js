@@ -1,15 +1,22 @@
-import Vue from 'vue'
-import Router from 'vue-router'
-import PieChart from '@/components/PieChart'
+import { createRouter, createWebHistory } from 'vue-router' 
+import PieChart from '@/components/PieChart.vue'
+import CategoryDetail from '@/components/CategoryDetail.vue'
 
-Vue.use(Router)
+const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+        {
+            path: '/',
+            name: 'PieChart',
+            component: PieChart
+        },
+        {
+            path: '/Category/:categoryName',
+            name: 'Category',
+            component: CategoryDetail,
+            props: true
+        }
+    ]
+}) 
 
-export default new Router({
-  routes: [
-    {
-      path: '/',
-      name: 'PieChart',
-      component: PieChart
-    }
-  ]
-})
+export default router

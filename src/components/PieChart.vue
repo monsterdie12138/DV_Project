@@ -1,28 +1,28 @@
 <template>
-  <div class="chart-container"> <!--用css类chart-container来展示这个元素-->
-    <div ref="chart"></div> <!--定义一块名叫chart的区域，具体内容由script决定-->
+  <div class="chart-container"> 
+    <div ref="chart"></div>   
   </div>
 </template>
 
 <script>
-import * as echarts from 'echarts'; //引入echarts
-import rawData from '@/assets/data.json'; //引入data
+import * as echarts from 'echarts'; 
+import rawData from '@/assets/data.json'; 
 
 export default {
-  data() {  //data()返回组件初始状态，包含需要响应式维护的元数据
+  data() {  
     return {
       pieChart: null,  //存储echarts图表实例
       pieData: [] //存储绘制饼图的数据
     };
   },
-  mounted() { //mounted()包含一系列初始化操作
-    this.dataInit(); //数据初始化
-    this.chartInit(); //图表初始化
-  },
+  mounted() { 
+    this.dataInit();
+    this.chartInit(); 
+  },   
   methods: {
     dataInit() {
-      let categoryCounts = {}; //记录每个种类的数量
-      for (let item of rawData) { //遍历每个元组，对应种类的数量+1
+      let categoryCounts = {}; 
+      for (let item of rawData) {
         if (categoryCounts[item.Category]) {
           categoryCounts[item.Category] += 1;
         }
@@ -30,65 +30,66 @@ export default {
           categoryCounts[item.Category] = 1;
         }
       };
-      let categoryNames = Object.keys(categoryCounts); //获得所有种类名
-      for (let item of categoryNames) { //将每组数据添加到元数据中（种类名+对应数量）
+      let categoryNames = Object.keys(categoryCounts); 
+      for (let item of categoryNames) {
         let newData = {name: item, value: categoryCounts[item]};
         this.pieData.push(newData);
-      }
+      };
     },
     chartInit() {
-      let categoryNames=[]; //获得所有种类名
+      let categoryNames=[]; 
       for (let item of this.pieData) {
         if (!categoryNames.includes(item.name)) {
           categoryNames.push(item.name);
         }
       }
-      let mid = Math.ceil(categoryNames.length / 2); //获得种类数的中间值并取整
+      let mid = Math.ceil(categoryNames.length / 2); 
+      const logAdjustedData = this.pieData.map(item => ({
+        name: item.name,
+        value: Math.log10(item.value + 1) 
+      }));
       const option = {
-        series: [{ //图表本身
+        series: [{ 
           type: 'pie', //饼图
-          data: this.pieData, //数据
-          radius: ['30%', '60%'], //内径和外径
+          data: logAdjustedData, //数据
+          radius: ['10%', '60%'], //内径和外径
           center: ['30%', '50%'], //水平位置和垂直位置
           roseType: 'area', //玫瑰图
-          label: { //标签
-            color: '#fff'
-          },
-          emphasis: { //鼠标悬停或选中的高亮效果
+          emphasis: {
             itemStyle: {
-              shadowBlur: 15, //悬停时阴影模糊程度
-              shadowOffsetX: 0, //阴影在水平方向上的偏移量
-              shadowColor: 'rgba(0, 0, 0, 1)' //黑色
-            }
+              shadowBlur: 20,          // 阴影模糊程度（增大更柔和）
+              shadowOffsetX: 20,         // 水平偏移归零（避免分离感）
+              shadowColor: 'rgba(0, 0, 0, 0.5)', // 半透明黑色阴影
+              borderWidth: 3,           // 添加白色边框强化视觉
+              borderColor: '#fff'
+            },
+            //缩放配置
+            scale: true,               
+            scaleSize: 30,      
+          },
+          label: {
+            color: '#fff',
+            formatter: params => { 
+              const originalValue = this.pieData.find(d => d.name === params.name).value;
+            },
           }
         }],
-        tooltip: {  //提示框
-          trigger: 'item', //提示框触发方式：悬停
-          formatter: '{b}: number={c} ({d}%)' //内容，b为name，c为value，d为百分比
-        },
-        legend: [ //图例
-          {
-            orient: 'vertical', //排列方式
-            right: '20%', //从右侧偏移
-            top: '30%', //从上侧偏移
-            data: categoryNames.slice(0, mid), //图例文本
-            textStyle: {
-              color: '#fff' //颜色
-            }
-          },
-          {
-            orient: 'vertical',
-            right: '5%',
-            top: '30%',
-            data: categoryNames.slice(mid),
-            textStyle: {
-              color: '#fff'
-            }
+        tooltip: {
+          formatter: params => {
+            const originalValue = this.pieData.find(d => d.name === params.name).value;
+            return `${params.name}: number: ${originalValue} (${params.percent}%)`;
           }
-        ]
+        }
       };
-      this.pieChart = echarts.init(this.$refs.chart); //初始化
-      this.pieChart.setOption(option); //应用对象到实例
+      this.pieChart = echarts.init(this.$refs.chart); 
+      this.pieChart.setOption(option); 
+      this.pieChart.on('click', (params) => {
+        const clickedCategory = this.pieData.find(item => item.name === params.name);
+        this.$router.push({
+          name: 'Category',
+          params: { categoryName: clickedCategory.name } 
+        });
+      });
     }
   }
 };
@@ -99,8 +100,8 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  width: 100vw;
+  height: 120vh;
+  width: 120vw;
 }
 .chart-container > div { /*容器内部内容占容器比例*/
   width: 100%;

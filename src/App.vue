@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <router-view/>
+    <router-view />
   </div>
 </template>
 
@@ -16,7 +16,14 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  background-color: #000;
   color: #fff;
+  
+
+  background: linear-gradient(
+    to bottom,
+    #080a6fe3,  
+    #000000  
+  );
+  min-height: 100vh;
 }
 </style>
