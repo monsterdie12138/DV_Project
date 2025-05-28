@@ -1,305 +1,295 @@
 <template>
-    <div class="chart-container">
-        <div ref="chart"></div>
+    <div class="stacked-container">
+      <div ref="chart" class="chart"></div>
+      <div class="controls">
+        <button @click="toggleViewMode">{{ viewMode === 'percent' ? '显示数量' : '显示百分比' }}</button>
+        <select v-model="selectedCategory" @change="updateChart">
+          <option value="all">所有类别</option>
+          <option v-for="cat in topCategories" :value="cat">{{ cat }}</option>
+        </select>
+      </div>
     </div>
-</template>
-
-<script>
-
-import * as echarts from "echarts";
-import rawData from "@/assets/data.json";
-
-export default {
-
-name:"StackChart",
-
-data() {
-    return {
-        ratingIntervals: [],  //对象数组：评分区间
-        categoryNames: [],    //字符串数组：类别名
-        stackedBarData: {},   //保存各评分区间在各类别下的计数数据
-        finalData: [],        //堆叠柱状图数据
-        averageRatings: [],   //浮点数数组：每个类型平均评分
-        chart: null
-    };
-},
-
-methods: {
-
-    //产生评分区间
-    generateIntervals() {
-        let intervals = [];
-        let min, max;
-        for (let i = 1.0; i < 4.0; i += 0.5) {
-            min = parseFloat(i.toFixed(1));
-            max = parseFloat((i + 0.5).toFixed(1));
-            intervals.push({label: `${min}-${max}`, min: min, max: max});
-        }
-        for (let i = 4.0; i < 5.0; i += 0.2) {
-            min = parseFloat(i.toFixed(1));
-            max = parseFloat((i + 0.2).toFixed(1));
-            intervals.push({label: `${min}-${max}`, min: min, max: max});
-        }
-        return intervals;
+  </template>
+  
+  <script>
+  import * as echarts from 'echarts';
+  import rawData from '@/assets/data.json';
+  
+  export default {
+    name: 'StackedBarChart',
+    data() {
+      return {
+        chart: null,
+        viewMode: 'percent', // 'count' or 'percent'
+        selectedCategory: 'all',
+        processedData: null,
+        topCategories: []
+      };
     },
-
-    //根据评分得到对应区间
-    findInterval(rating) {
-        let min;
-        let max;
-        if (rating < 4.0) {
-            min = parseFloat((Math.floor(rating / 0.5) * 0.5).toFixed(1));
-            max = parseFloat((min + 0.5).toFixed(1));
+    computed: {
+      displayData() {
+        if (!this.processedData) return null;
+        
+        if (this.selectedCategory !== 'all') {
+          return {
+            ...this.processedData,
+            categories: [this.selectedCategory],
+            ratingData: Object.fromEntries(
+              Object.entries(this.processedData.ratingData).map(([interval, data]) => [
+                interval,
+                { [this.selectedCategory]: data[this.selectedCategory] || 0 }
+              ])
+            )
+          };
         }
-        else if (rating < 5.0) {
-            min = parseFloat((Math.floor(rating / 0.2) * 0.2).toFixed(1));
-            max = parseFloat((min + 0.2).toFixed(1));
-        }
-        else {
-            min = 4.8;
-            max = 5.0;
-        }
-        return `${min}-${max}`;
+        return this.processedData;
+      }
     },
-
-    //根据区间最小值得到对应颜色
-    getIntervalColor(min) {
-        let ratio, R, G, B;
-        if (min < 4.0) {
-            ratio = (min - 1) / 3.0;
-            R = Math.round(217 * (1 - ratio));
-            G = Math.round(179 * (1 - ratio));
-            B = Math.round(179 * (1 - ratio));
-            return "#" + R.toString(16).padStart(2, "0") + G.toString(16).padStart(2, "0") + B.toString(16).padStart(2, "0");
-        } else if (min == 4.0) {
-            return "#000000";
-        } else {
-            ratio = (min - 4.1) / 0.6;
-            R = Math.round(149 * ratio);
-            G = Math.round(202 * ratio);
-            B = Math.round(202 * ratio);
-            return "#" + R.toString(16).padStart(2, "0") + G.toString(16).padStart(2, "0") + B.toString(16).padStart(2, "0");
-        }
-    }
-},
-
-created() {
-    //生成评分区间
-    this.ratingIntervals = this.generateIntervals();
-
-    //为每个评分区间初始化计数对象
-    for (const interval of this.ratingIntervals) {
-        this.$set(this.stackedBarData, interval.label, {});
-    }
-
-    let categoryCnt = {}; //每个类别的计数
-    let categorySum = {}; //每个类别的评分总和
-    let categoryAvg = {}; //每个类别的平均评分
-
-    //遍历原始数据，根据 Category 与 Rating 统计数据
-    for (const tuple of rawData) {
-        let category = tuple.Category;
-        let rating = parseFloat(tuple.Rating);
-        let label = this.findInterval(rating);
-        if (isNaN(rating)) continue;
-
-        //新类别初始化
-        if (!this.categoryNames.includes(category)) {
-            this.categoryNames.push(category);
-            for (const interval of this.ratingIntervals) {
-                this.$set(this.stackedBarData[interval.label], category, 0);
-            }
-            categoryCnt[category] = 0;
-            categorySum[category] = 0;
-        }
-
-        //更新相关计数
-        this.stackedBarData[label][category]++;
-        categoryCnt[category]++;
-        categorySum[category] += rating;
-    }
-
-    //计算平均评分
-    for (const category of this.categoryNames) {
-        categoryAvg[category] = parseFloat((categorySum[category] / categoryCnt[category]).toFixed(2));
-    }
-
-    //按平均评分降序排列
-    this.categoryNames.sort((a, b) => categoryAvg[b] - categoryAvg[a]);
-    this.averageRatings = this.categoryNames.map((category) => categoryAvg[category]);
-
-    //构造堆叠柱状图数据
-    let finalData = this.ratingIntervals.map((interval) => {
+    methods: {
+      // 数据处理核心方法
+      processData() {
+        const categoryCounts = {};
+        const ratingData = {};
+        
+        // 定义评分区间（从2.0开始）
+        const ratingIntervals = [
+          { min: 2.0, max: 2.5, label: "2.0-2.5" },
+          { min: 2.5, max: 3.0, label: "2.5-3.0" },
+          { min: 3.0, max: 3.5, label: "3.0-3.5" },
+          { min: 3.5, max: 4.0, label: "3.5-4.0" },
+          { min: 4.0, max: 4.5, label: "4.0-4.5" },
+          { min: 4.5, max: 5.0, label: "4.5-5.0" },
+          { min: NaN, max: NaN, label: "无评分" }
+        ];
+  
+        // 初始化数据结构
+        ratingIntervals.forEach(interval => {
+          ratingData[interval.label] = {};
+        });
+  
+        // 处理原始数据
+        rawData.forEach(item => {
+          const category = item.Category;
+          const rating = parseFloat(item.Rating);
+          
+          // 统计类别出现次数
+          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+          
+          // 确定评分区间
+          let intervalKey = "无评分";
+          if (!isNaN(rating)) {
+            const found = ratingIntervals.find(int => 
+              !isNaN(int.min) && rating >= int.min && rating < int.max
+            );
+            intervalKey = found ? found.label : "无评分";
+          }
+          
+          // 计数
+          ratingData[intervalKey][category] = (ratingData[intervalKey][category] || 0) + 1;
+        });
+  
+        // 按出现次数排序类别，取前20个
+        const sortedCategories = Object.keys(categoryCounts)
+          .sort((a, b) => categoryCounts[b] - categoryCounts[a])
+          .slice(0, 30);
+  
         return {
-            name: interval.label,
-            type: "bar",          //柱状图
-            stack: "total",       //堆叠
-            barWidth: "50%",
-            itemStyle: {color: this.getIntervalColor(interval.min)},
-            data: this.categoryNames.map((category) => parseFloat((((this.stackedBarData[interval.label][category]) / categoryCnt[category]) * 100).toFixed(1))), //对于每个区间，计算每个类别的比例
+          categories: sortedCategories,
+          ratingIntervals,
+          ratingData,
+          totalCounts: categoryCounts
         };
-    });
-
-    //反转区间顺序，使得高分区间显示在下方
-    this.finalData = finalData.reverse();
-},
-
-mounted() {
-
-    //初始化图表
-    this.chart = echarts.init(this.$refs.chart);
-
-    //画一颗五角星
-    const star = "path://M50 15 L61 35 L85 35 L66 50 L75 72 L50 60 L25 72 L34 50 L15 35 L39 35 Z";
-
-    //图表相关设置
-    const option = {
-
-        tooltip: { //提示框
-            trigger: "axis", //鼠标移动到对应位置触发
-            axisPointer: {type: "shadow"}, //阴影
-            formatter: function (params) {  //文本内容：分上下讨论，类别名加粗
-                let text;
-                text = `<b>${params[0].axisValue}</b><br/>`;
-                if (params[0].seriesType === "pictorialBar") {
-                    for (const item of params) {
-                        if (item.seriesName == "Average Rating") {
-                            text += `${item.seriesName}: ${item.value}<br/>`;
-                        }
-                    }
-                }
-                else {
-                    for (const item of params) {
-                        text += `${item.seriesName}: ${item.value}%<br/>`;
-                    }
-                }
-                return text;
+      },
+  
+      // 获取图表配置
+      getChartOption() {
+        if (!this.displayData) return null;
+        
+        const series = this.displayData.ratingIntervals.map(interval => {
+          const data = this.displayData.categories.map(cat => {
+            const value = this.displayData.ratingData[interval.label][cat] || 0;
+            return this.viewMode === 'percent' 
+              ? (value / this.processedData.totalCounts[cat] * 100).toFixed(1)
+              : value;
+          });
+          
+          return {
+            name: interval.label,
+            type: 'bar',
+            stack: 'total',
+            emphasis: { focus: 'series' },
+            data: data,
+            itemStyle: {
+              color: this.getIntervalColor(interval.min)
             },
-        },
-
-        legend: { //图例
-            orient: 'vertical', //垂直排列
-            right: '5%',
-            top: 'center',
-            data: this.ratingIntervals.map((interval) => interval.label).concat(["Average Rating"]), //文本内容
-            textStyle: {color: '#ffffff'}, //白色
-        },
-
-      grid: [ //网格布局
-        {
-          //上部：显示星级平均评分
-          top: "30%",
-          left: "5%",
-          right: "20%",
-          height: "15%",
-        },
-        {
-          //下部：显示堆叠柱状图
-          top: "45%",
-          left: "5%",
-          right: "20%",
-          bottom: "35%",
-        },
-      ],
-
-      xAxis: [ //横轴
-        {
-          //上部：
-          type: "category", //类别轴
-          gridIndex: 0, //对应0号网格
-          data: this.categoryNames,
-          axisTick: {alignWithLabel: true}, //刻度线与横轴标签对齐
-          axisLabel: {show: false}, //不显示标签
-        },
-        {
-          //下部：
-          type: "category",
-          gridIndex: 1,
-          data: this.categoryNames,
-          axisTick: {alignWithLabel: true},
-          axisLabel: {
-              rotate: 45,       //旋转45°
-              color: "#ffffff"  //白色
+            label: {
+              show: this.displayData.categories.length <= 15,
+              position: 'inside',
+              formatter: params => {
+                if (this.viewMode === 'percent') return `${params.value}%`;
+                return params.value > 10 ? params.value : '';
+              }
+            }
+          };
+        });
+  
+        return {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            formatter: params => {
+              const category = params[0].axisValue;
+              let html = `<b>${category}</b><br/>`;
+              const total = this.processedData.totalCounts[category];
+              
+              params.reverse().forEach(p => {
+                const value = p.value;
+                const percent = ((p.value / total) * 100).toFixed(1);
+                html += `
+                  <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background:${p.color}"></span>
+                  ${p.seriesName}: ${this.viewMode === 'percent' ? `${value}%` : value} 
+                  ${this.viewMode === 'count' ? `(${percent}%)` : ''}<br/>
+                `;
+              });
+              
+              html += `<br/>总计: ${total}条`;
+              return html;
+            }
           },
-        },
-      ],
-
-      yAxis: [
-        {
-          //上部：
-          type: "value", //数值轴
-          gridIndex: 0,
-          max: 5,
-          axisLine: {show: false},
-          axisTick: {show: false},
-          axisLabel: {show: false},
-          splitLine: {show: false},
-        },
-        {
-          //下部：
-          type: "value",
-          gridIndex: 1,
-          max: 100,
-          axisLabel: {
-              formatter: "{value}%",
-              color: "#ffffff"
+          legend: {
+            data: this.displayData.ratingIntervals.map(i => i.label),
+            type: 'scroll',
+            orient: 'vertical',
+            right: 10,
+            top: 20,
+            bottom: 20,
+            textStyle: { color: '#fff' }
           },
-        },
-      ],
-
-      series: [
-        // 上部星级背景
-        {
-          name: "Star Background",
-          type: "pictorialBar", //图形替换传统柱状图
-          xAxisIndex: 0,
-          yAxisIndex: 0,
-          gridIndex: 0,
-          symbol: star, //用星形符号
-          symbolRepeat: "fixed",
-          symbolMargin: 2, //星星之间的间隔
-          symbolSize: [20, 20], //星星的大小
-          data: this.categoryNames.map(() => 5), 
-          itemStyle: {color: "#333333"}, //颜色
-          z: 3, //底层
-        },
-        // 上部星级前景
-        {
-          name: "Average Rating",
-          type: "pictorialBar",
-          xAxisIndex: 0,
-          yAxisIndex: 0,
-          gridIndex: 0,
-          symbol: star,
-          symbolRepeat: "fixed",
-          symbolMargin: 2,
-          symbolSize: [20, 20],
-          symbolClip: true, //对数据进行裁剪
-          data: this.categoryNames.map((category, index) => this.averageRatings[index]),
-          itemStyle: {color: "#ffffff"},
-          z: 4,
-        },
-        // 下部堆叠柱状图
-        ...this.finalData.map((s) => Object.assign({}, s, {xAxisIndex: 1, yAxisIndex: 1, gridIndex: 1})),
-      ],
-    };
-
-    //应用
-    this.chart.setOption(option);
-  },
-};
-</script>
-
-<style scoped>
-.chart-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    width: 100vw;
-}
-.chart-container > div {
+          grid: {
+            left: '3%',
+            right: '23%',
+            bottom: '15%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: this.displayData.categories,
+            axisLabel: {
+              rotate: 45,
+              color: '#fff',
+              fontSize: 10,
+              interval: 0,
+              formatter: value => {
+                if (value.length > 10) return value.substring(0, 8) + '...';
+                return value;
+              }
+            }
+          },
+          yAxis: {
+            type: 'value',
+            axisLabel: { 
+              color: '#fff',
+              formatter: value => this.viewMode === 'percent' ? `${value}%` : value
+            }
+          },
+          dataZoom: [
+            {
+              type: 'slider',
+              show: this.displayData.categories.length > 10,
+              xAxisIndex: 0,
+              bottom: '10%',
+              height: 20,
+              handleStyle: {
+                color: '#fff'
+              }
+            }
+          ],
+          series
+        };
+      },
+  
+      // 颜色生成
+      getIntervalColor(minValue) {
+        if (isNaN(minValue)) return '#999';
+        
+        const colors = [
+          '#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9641', '#2c7bb6'
+        ];
+        const index = Math.floor((minValue - 2.0) / 0.5);
+        return colors[index] || '#6a3d9a';
+      },
+  
+      // 视图切换
+      toggleViewMode() {
+        this.viewMode = this.viewMode === 'percent' ? 'count' : 'percent';
+        this.updateChart();
+      },
+  
+      // 更新图表
+      updateChart() {
+        if (this.chart) {
+          this.chart.setOption(this.getChartOption());
+        }
+      },
+  
+      // 初始化图表
+      initChart() {
+        this.processedData = this.processData();
+        this.topCategories = this.processedData.categories.slice(0, 10);
+        
+        this.chart = echarts.init(this.$refs.chart);
+        this.updateChart();
+        
+        window.addEventListener('resize', this.handleResize);
+      },
+  
+      // 处理窗口大小变化
+      handleResize() {
+        this.chart?.resize();
+      }
+    },
+    mounted() {
+        this.initChart();
+        const star = "path://M50 15 L61 35 L85 35 L66 50 L75 72 L50 60 L25 72 L34 50 L15 35 L39 35 Z";
+    },
+    beforeUnmount() {
+      window.removeEventListener('resize', this.handleResize);
+      this.chart?.dispose();
+    }
+  };
+  </script>
+  
+  <style scoped>
+  .stacked-container {
+    position: relative;
     width: 100%;
     height: 100%;
-}
-</style>
+  }
+  
+  .chart {
+    width: 100%;
+    height: 80vh;
+  }
+  
+  .controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+  }
+  
+  button, select {
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: 1px solid #666;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  select {
+    min-width: 120px;
+  }
+  </style>

@@ -15,6 +15,9 @@ const router = createRouter({
             name: 'Category',
             component: CategoryDetail,
             props: true
+        },
+        {
+         
         }
     ]
 }) 
