@@ -54,7 +54,7 @@
           </table>
         </div>
       </div>
-      <div style="flex: 1;">
+      <div style="flex: 1; margin-top: 70px;">
         <div class="rightchart-container">
           <!-- 按钮区域 -->
           <div class="chart-buttons">
@@ -194,7 +194,7 @@ h1 {
 
 .table-container {
   width: 100%;
-  height: 468px;
+  height: 600px;
   overflow-y: scroll; 
   scrollbar-width: thin; 
   scrollbar-color: rgba(255,255,255,0.3) transparent;
@@ -209,7 +209,7 @@ h1 {
 .rightchart-container {
   position: relative;
   width: 100%;
-  height: 550px;
+  height: 600px;
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   margin-top: 10px;
