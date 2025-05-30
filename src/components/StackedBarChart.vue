@@ -2,14 +2,14 @@
     <div class="stacked-container">
       <div ref="chart" class="chart"></div>
       <div class="controls">
-        <button @click="toggleViewMode">{{ viewMode === 'percent' ? '显示数量' : '显示百分比' }}</button>
+        <button @click="toggleViewMode">{{ viewMode === 'percent' ? 'Amount' : 'Percentage' }}</button>
         <select v-model="selectedCategory" @change="updateChart">
-          <option value="all">所有类别</option>
-          <option v-for="cat in topCategories" :value="cat">{{ cat }}</option>
+          <option value="all">All categories</option>
+          <option v-for="cat in topCategories" :key="cat" :value="cat">{{ cat }}</option>
         </select>
       </div>
     </div>
-  </template>
+</template>
   
   <script>
   import * as echarts from 'echarts';
@@ -88,10 +88,9 @@
           ratingData[intervalKey][category] = (ratingData[intervalKey][category] || 0) + 1;
         });
   
-        // 按出现次数排序类别，取前20个
+        // 按出现次数排序类别
         const sortedCategories = Object.keys(categoryCounts)
-          .sort((a, b) => categoryCounts[b] - categoryCounts[a])
-          .slice(0, 30);
+          .sort((a, b) => categoryCounts[b] - categoryCounts[a]);
   
         return {
           categories: sortedCategories,
@@ -135,24 +134,21 @@
   
         return {
           tooltip: {
-            trigger: 'axis',
             axisPointer: { type: 'shadow' },
             formatter: params => {
-              const category = params[0].axisValue;
-              let html = `<b>${category}</b><br/>`;
+              const category = params.name;
               const total = this.processedData.totalCounts[category];
-              
-              params.reverse().forEach(p => {
-                const value = p.value;
-                const percent = ((p.value / total) * 100).toFixed(1);
+              let html = `<b>${category}</b><br/>`;
+              [params].forEach(p => {
+                const value = Number(p.value);
+                const percent = total ? ((value / total) * 100).toFixed(1) : '0.0';
                 html += `
                   <span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background:${p.color}"></span>
-                  ${p.seriesName}: ${this.viewMode === 'percent' ? `${value}%` : value} 
-                  ${this.viewMode === 'count' ? `(${percent}%)` : ''}<br/>
+                  ${p.seriesName}: ${this.viewMode == 'percent' ? `${value}%` : value} 
+                  ${this.viewMode == 'count' ? `(${percent}%)` : ''}<br/>
                 `;
               });
-              
-              html += `<br/>总计: ${total}条`;
+              html += `总计: ${total}条`;
               return html;
             }
           },
@@ -163,21 +159,26 @@
             right: 10,
             top: 20,
             bottom: 20,
-            textStyle: { color: '#fff' }
+            itemWidth: 10,
+            textStyle: { 
+              color: '#fff',
+              fontFamily: 'Times New Roman',
+            }
           },
           grid: {
-            left: '3%',
-            right: '23%',
-            bottom: '15%',
+            left: '2%',
+            right: '18%',
+            bottom: '10%',
             containLabel: true
           },
           xAxis: {
             type: 'category',
             data: this.displayData.categories,
             axisLabel: {
+              fontFamily: 'Times New Roman',
               rotate: 45,
               color: '#fff',
-              fontSize: 10,
+              fontSize: 9,
               interval: 0,
               formatter: value => {
                 if (value.length > 10) return value.substring(0, 8) + '...';
@@ -187,7 +188,9 @@
           },
           yAxis: {
             type: 'value',
+            max: this.viewMode === 'percent' ? 100 : null,
             axisLabel: { 
+              fontFamily: 'Times New Roman',
               color: '#fff',
               formatter: value => this.viewMode === 'percent' ? `${value}%` : value
             }
@@ -197,7 +200,7 @@
               type: 'slider',
               show: this.displayData.categories.length > 10,
               xAxisIndex: 0,
-              bottom: '10%',
+              bottom: '5%',
               height: 20,
               handleStyle: {
                 color: '#fff'
@@ -213,7 +216,7 @@
         if (isNaN(minValue)) return '#999';
         
         const colors = [
-          '#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9641', '#2c7bb6'
+          '#6091ab', '#89a3ae', '#b2b5b2', '#dbc7b5', '#d3a89c', '#ca8882'
         ];
         const index = Math.floor((minValue - 2.0) / 0.5);
         return colors[index] || '#6a3d9a';
@@ -235,7 +238,7 @@
       // 初始化图表
       initChart() {
         this.processedData = this.processData();
-        this.topCategories = this.processedData.categories.slice(0, 10);
+        this.topCategories = this.processedData.categories;
         
         this.chart = echarts.init(this.$refs.chart);
         this.updateChart();
@@ -250,7 +253,6 @@
     },
     mounted() {
         this.initChart();
-        const star = "path://M50 15 L61 35 L85 35 L66 50 L75 72 L50 60 L25 72 L34 50 L15 35 L39 35 Z";
     },
     beforeUnmount() {
       window.removeEventListener('resize', this.handleResize);
@@ -268,7 +270,7 @@
   
   .chart {
     width: 100%;
-    height: 80vh;
+    height: 100%;
   }
   
   .controls {
@@ -282,11 +284,12 @@
   
   button, select {
     padding: 5px 10px;
-    background: rgba(0, 0, 0, 0.7);
+    background: #393636;
     color: white;
-    border: 1px solid #666;
+    border: 1px solid;
     border-radius: 4px;
     cursor: pointer;
+    font-family: 'Times New Roman', serif;
   }
   
   select {

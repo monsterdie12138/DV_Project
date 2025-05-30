@@ -1,10 +1,10 @@
 <template>
   <div class="dashboard-container">
-    <div class="chart-wrapper">
+    <div class="chart-wrapper left">
+      <h class="main-title">2024 Google App Analysis</h>
       <div ref="pieChart" class="chart"></div>
     </div>
-    <div class="chart-wrapper">
-      <h class="main-title">2024 Google App Analysis</h>
+    <div class="chart-wrapper right">
       <StackedBarChart ref="stackChartRef" class="chart"/>
     </div>
   </div>
@@ -65,6 +65,7 @@ export default {
         value: Math.log10(item.value + 1) 
       }));
       const option = {
+        color: ['#d67573', '#f6c6a9', '#fdf5ee','#85807f','#f8e8cf'],
         series: [{ 
           type: 'pie', //饼图
           data: logAdjustedData, //数据
@@ -85,20 +86,34 @@ export default {
           },
           label: {
             color: '#fff',
+            textStyle: {
+              fontFamily: 'Times New Roman',
+              fontSize: 11
+            },
             formatter: params => { 
-              const originalValue = this.pieData.find(d => d.name === params.name).value;
+              const name = params.name;
+              const firstIndex = name.indexOf('_');
+              if (firstIndex === -1) {
+                return name;
+              }
+              const secondIndex = name.indexOf('_', firstIndex + 1);
+                if (secondIndex === -1) {
+                return name;
+              }
+                return name.slice(0, secondIndex) + '\n' + name.slice(secondIndex);
             },
           }
         }],
         tooltip: {
+          textStyle: {
+            fontFamily: 'Times New Roman',
+          },
           formatter: params => {
-            console.log("The name is :", params.name);
             const imageUrl = new URL(`../assets/img/${params.name}.jpg`, import.meta.url).href;
-            console.log("the url = ", imageUrl);
             const originalValue = this.pieData.find(d => d.name === params.name).value;
             return `
             <div style="text-align: center; padding: 10px; height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-              <p style="color: #000; font-size: 16px; margin: 5px 0;">${params.name}</p>
+              <p style="color: #000; font-size: 16px; margin: 5px 0;"><strong>${params.name}</strong></p>
               <p style="color: #000; font-size: 14px; margin: 5px 0;">Number: ${originalValue}</p>
               <p style="color: #fff; font-size: 14px; margin: 5px 0;">(${params.percent}%)</p>
               <img src="${imageUrl}" alt="${params.name}" style="width: 100px; height: 100px; border-radius: 10px; margin-top: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);" />
@@ -136,11 +151,13 @@ export default {
   min-width: 0; /* 防止 flex 项目溢出 */
   height: 100%;
   padding: 10px;
-  background-color: rgba(5, 6, 33, 0.8);
   color: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart {
+  flex: 1;
   width: 100%;
   height: 100%;
   background: rgba(255,255,255,0.1); /* 添加背景便于调试 */
@@ -148,9 +165,18 @@ export default {
 .main-title {
   font-size: 3rem;
   color: #ffffff;
-  font-family: 'Roboto', sans-serif;
-  margin-bottom: 20px;
+  font-family: 'Times New Roman', sans-serif;
+  margin-bottom: 10px;
   letter-spacing: 2px; /* 字间距 */
   text-transform: uppercase;
+  position: relative;
+  top: -10px;
+}
+.left {
+  flex: 9;
+}
+
+.right {
+  flex: 11;
 }
 </style>

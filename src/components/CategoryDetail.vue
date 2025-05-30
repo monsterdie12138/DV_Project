@@ -7,9 +7,15 @@
           <img 
             :src="urlFind(categoryName)" 
             :alt="categoryName" 
-            style="width: 100px; height: 100px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);" 
+            style="width: 70px; height: 70px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);" 
           />
-          <h1 style="margin: 0;">{{ categoryName }} - Details</h1>
+          <h1 style="margin: 0; ">{{ categoryName }} - Details</h1>
+          <!-- 返回主页按钮 -->
+          <button
+            @click="goBack"
+            style="padding: 5px 10px; background: #393636; color: white; border: 1px solid; border-radius: 4px; cursor: pointer; font-family: 'Times New Roman', serif;">
+            Return ←
+          </button>
         </div>
 
         <div class="table-container" v-if="categoryInfo.length > 0" @mouseover="pauseScroll" @mouseout="resumeScroll">
@@ -49,13 +55,24 @@
         </div>
       </div>
       <div style="flex: 1;">
-        <div style="display: flex; align-items: center; gap: 20px; margin-top: 20px;">
-          <button @click="changeChart('ScatterChart')" style="margin-top: 40px; margin-left: 20px;padding: 10px 20px; border: none; background-color: #3f51b5; color: white; border-radius: 20px; cursor: pointer;">Scatter Chart</button>
-          <button @click="changeChart('PaidVsFree')" style="margin-top: 40px; margin-left: 20px;padding: 10px 20px; border: none; background-color: #3f51b5; color: white; border-radius: 20px; cursor: pointer;">Paid Vs Free</button>
-          <button @click="changeChart('BoxChart')" style="margin-top: 40px; margin-left: 20px;padding: 10px 20px; border: none; background-color: #3f51b5; color: white; border-radius: 20px; cursor: pointer;">Box Chart</button>
-        </div>
-        <div class="rightchart-container" >
-          <component :is="currentChart" :data="categoryInfo" />
+        <div class="rightchart-container">
+          <!-- 按钮区域 -->
+          <div class="chart-buttons">
+            <button @click="changeChart('ScatterChart')">
+              Scatter Chart
+            </button>
+            <button @click="changeChart('PaidVsFree')">
+              Paid Vs Free
+            </button>
+            <button @click="changeChart('BoxChart')">
+              Box Chart
+            </button>
+          </div>
+          <div class="line"></div>
+          <!-- 图表区域 -->
+          <div class="chart-content">
+            <component :is="currentChart" :data="categoryInfo" />
+          </div>
         </div>
       </div>
     </div>
@@ -113,6 +130,9 @@ export default {
         return new URL('/src/assets/img/background.jpg', import.meta.url).href;
       }
     },
+    goBack() {
+      this.$router.push('/');
+    },
     startAutoScroll() {
       const container = this.$el.querySelector('.table-container');
       const content = this.$refs.scrollContent;
@@ -162,7 +182,7 @@ export default {
 <style scoped>
 .category-detail {
   padding: 20px;
-  font-family: Arial, sans-serif;
+  font-family: Times New Roman, sans-serif;
   background-color: transparent;
 }
 
@@ -174,7 +194,7 @@ h1 {
 
 .table-container {
   width: 100%;
-  height: 600px;
+  height: 468px;
   overflow-y: scroll; 
   scrollbar-width: thin; 
   scrollbar-color: rgba(255,255,255,0.3) transparent;
@@ -187,15 +207,46 @@ h1 {
   backdrop-filter: blur(5px);
 }
 .rightchart-container {
+  position: relative;
   width: 100%;
-  height: 600px;
+  height: 550px;
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  margin-top: 25px;
+  margin-top: 10px;
   position: relative;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: #57504f;
   backdrop-filter: blur(5px);
+}
+
+.chart-buttons {
+  position: absolute;
+  top: 5%;
+  left: 20%;
+  right: 20%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-buttons button {
+  padding: 5px 10px;
+  background: #393636;
+  color: white;
+  border: 1px solid;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Times New Roman', serif;
+}
+
+.chart-content {
+  position: absolute;
+  top: 15%;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .category-table {
@@ -211,10 +262,10 @@ h1 {
 }
 
 .category-table th {
-  background-color: rgba(8, 10, 111, 0.8);
+  background-color: #67605f;
   color: #ffffff;
   position: sticky;
-  top: 0;
+  top: -5px;
   z-index: 10;
   font-weight: bold;
 }
@@ -228,7 +279,7 @@ h1 {
 }
 
 .category-table tr:hover {
-  background-color: rgba(8, 10, 111, 0.4);
+  background-color: #67605f;
   transition: all 0.3s ease;
 }
 
@@ -236,4 +287,13 @@ h1 {
   color: #ffffff;
   font-weight: 500;
 }
+
+.line {
+  position: relative;
+  top: 15%;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.5);
+  z-index: 100;
+}
 </style>
+

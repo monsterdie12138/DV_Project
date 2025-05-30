@@ -19,11 +19,7 @@ export default {
   color: #fff;
   
 
-  background: linear-gradient(
-    to bottom,
-    #080a6fe3,  
-    #000000  
-  );
+  background: #393636;
   min-height: 100vh;
 }
 </style>

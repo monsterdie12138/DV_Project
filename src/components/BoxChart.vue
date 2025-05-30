@@ -1,7 +1,9 @@
 <template>
   <div class="boxplot-container">
-    <div ref="ratingChart" class="chart"></div>
-    <div ref="installsChart" class="chart"></div>
+    <div class="chart-area">
+      <div ref="ratingChart" class="chart rating-chart"></div>
+      <div ref="installsChart" class="chart installs-chart"></div>
+    </div>
   </div>
 </template>
 
@@ -25,29 +27,31 @@ export default {
         rating: {
           title: {
             text: 'Rating (Paid vs Free)',
-            left: 'center'
+            left: 'center',
+            textStyle: {
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
+            }
           },
           tooltip: {
             trigger: 'item',
-            axisPointer: {
-              type: 'shadow'
-            }
-          },
-          legend: {
-            data: ['Paid', 'Free'],
-            top: '10%'
+            axisPointer: { type: 'shadow' },
+            textStyle: { fontFamily: 'Times New Roman' },
           },
           grid: {
             left: '10%',
             right: '10%',
-            bottom: '15%',
-            top: '25%'
+            top: '20%',
+            bottom: '10%',
+            containLabel: true
           },
           xAxis: {
             type: 'category',
             data: ['Paid', 'Free'],
             axisLabel: {
-              fontSize: 12
+              fontSize: 12,
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
             }
           },
           yAxis: {
@@ -55,48 +59,62 @@ export default {
             name: 'Rating',
             min: 0,
             max: 5,
-            axisLabel: {
-              formatter: '{value}'
+            nameTextStyle: {
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
+            },
+            axisLabel: { 
+              formatter: '{value}',
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
             }
           }
         },
         installs: {
           title: {
             text: 'Installs (Paid vs Free)',
-            left: 'center'
+            left: 'center',
+            textStyle: {
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
+            }
           },
           tooltip: {
             trigger: 'item',
-            axisPointer: {
-              type: 'shadow'
-            }
-          },
-          legend: {
-            data: ['Paid', 'Free'],
-            top: '10%'
+            axisPointer: { type: 'shadow' },
+            textStyle: { fontFamily: 'Times New Roman' },
           },
           grid: {
             left: '10%',
             right: '10%',
-            bottom: '15%',
-            top: '25%'
+            top: '20%',
+            bottom: '10%',
+            containLabel: true
           },
           xAxis: {
             type: 'category',
             data: ['Paid', 'Free'],
             axisLabel: {
-              fontSize: 12
+              fontSize: 12,
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
             }
           },
           yAxis: {
             type: 'log',  // 关键修改
             name: 'Installs (log scale)',
+            nameTextStyle: {
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
+            },
             axisLabel: {
-              formatter: (value) => this.formatNumber(value)
+              formatter: (value) => this.formatNumber(value),
+              fontFamily: 'Times New Roman',
+              color: '#ffffff'
             },
             // 对数轴需要指定最小值和基数
             min: 1,    // 最小显示值（如1K）
-            max:  1000000,
+            max: 1000000,
             logBase: 10   // 对数基数（10为常用）
           }
         }
@@ -117,12 +135,12 @@ export default {
 
       this.ratingChart = echarts.init(this.$refs.ratingChart);
       this.installsChart = echarts.init(this.$refs.installsChart);
-      
+
       this.updateCharts();
 
       window.addEventListener('resize', this.handleResize);
     },
-    
+
     handleResize() {
       if (this.ratingChart) {
         this.ratingChart.resize();
@@ -131,11 +149,11 @@ export default {
         this.installsChart.resize();
       }
     },
-    
+
     processRatingData() {
       const paidRatings = [];
       const freeRatings = [];
-      
+
       this.data.forEach(item => {
         if (item.Rating && item.Rating !== 'NaN') {
           const rating = parseFloat(item.Rating);
@@ -148,13 +166,13 @@ export default {
           }
         }
       });
-      
+
       return {
         paid: this.calculateBoxPlotData(paidRatings),
         free: this.calculateBoxPlotData(freeRatings)
       };
     },
-    
+
     processInstallsData() {
       const paidInstalls = [];
       const freeInstalls = [];
@@ -173,41 +191,41 @@ export default {
           }
         }
       });
-      
+
       return {
         paid: this.calculateBoxPlotData(paidInstalls),
         free: this.calculateBoxPlotData(freeInstalls)
       };
     },
-    
+
     calculateBoxPlotData(data) {
       if (!data || data.length === 0) return [0, 0, 0, 0, 0];
-      
+
       // 排序数据
       const sorted = [...data].sort((a, b) => a - b);
       const q1 = this.quantile(sorted, 0.25);
       const median = this.quantile(sorted, 0.5);
       const q3 = this.quantile(sorted, 0.75);
-      
+
       // 计算上下边界
       const iqr = q3 - q1;
       const lowerBound = Math.max(sorted[0], q1 - 1.5 * iqr);
       const upperBound = Math.min(sorted[sorted.length - 1], q3 + 1.5 * iqr);
-      
+
       return [lowerBound, q1, median, q3, upperBound];
     },
-    
+
     quantile(sorted, p) {
       const n = sorted.length;
       const index = (n - 1) * p;
       const lower = Math.floor(index);
       const upper = lower + 1;
       const weight = index - lower;
-      
+
       if (upper >= n) return sorted[lower];
       return sorted[lower] * (1 - weight) + sorted[upper] * weight;
     },
-    
+
     updateCharts() {
       const ratingData = this.processRatingData();
       const installsData = this.processInstallsData();
@@ -219,16 +237,22 @@ export default {
           name: 'Boxplot',
           type: 'boxplot',
           data: [
-            {
-              value: ratingData.paid,
-              itemStyle: { color: '#EE6666' },
+            { 
+              value: ratingData.paid, 
+              itemStyle: { 
+                color: '#d67573',
+                borderColor: '#ffffff'
+              }, 
               name: 'Paid'
             },
-            {
-              value: ratingData.free,
-              itemStyle: { color: '#91CC75' },
-              name: 'Free'
-            }
+            { 
+              value: ratingData.free, 
+              itemStyle: { 
+                color: '#6091ab',
+                borderColor: '#ffffff'
+              }, 
+              name: 'Free' 
+              }
           ],
           tooltip: {
             formatter: param => {
@@ -253,15 +277,21 @@ export default {
           name: 'Boxplot',
           type: 'boxplot',
           data: [
-            {
-              value: installsData.paid,
-              itemStyle: { color: '#EE6666' },
-              name: 'Paid'
+            { 
+              value: installsData.paid, 
+              itemStyle: { 
+                color: '#d67573',
+                borderColor: '#ffffff'
+              }, 
+              name: 'Paid' 
             },
-            {
-              value: installsData.free,
-              itemStyle: { color: '#91CC75' },
-              name: 'Free'
+            { 
+              value: installsData.free, 
+              itemStyle: { 
+                color: '#6091ab',
+                borderColor: '#ffffff'
+              }, 
+              name: 'Free' 
             }
           ],
           tooltip: {
@@ -283,7 +313,7 @@ export default {
       this.ratingChart.setOption(ratingOption);
       this.installsChart.setOption(installsOption);
     },
-    
+
     formatNumber(num) {
       if (num >= 1000000) {
         return (num / 1000000).toFixed(1) + 'M';
@@ -306,7 +336,7 @@ export default {
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize);
-    
+
     if (this.ratingChart) {
       this.ratingChart.dispose();
     }
@@ -322,12 +352,19 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 500px;
+  height: 100%;
+}
+
+.chart-area {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
 }
 
 .chart {
-  width: 100%;
-  min-height: 300px;
-  margin-bottom: 20px;
+  flex: 1;
+  margin: 0;
+  background-color: #67605f;
 }
 </style>

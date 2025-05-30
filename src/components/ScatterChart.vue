@@ -1,7 +1,7 @@
 <template>
-    <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
-      <button @click="toggleInstallSize" style="margin-top: 40px; margin-left: 20px;padding: 10px 20px; border: none; background-color: #3f51b5; color: white; border-radius: 20px; cursor: pointer;">
-        {{ showInstallSize ? 'without install' : 'display install' }}
+    <div class="chart-container" style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
+      <button @click="toggleInstallSize" style="padding: 5px 10px; background: #393636; color: white; border: 1px solid; border-radius: 4px; cursor: pointer; font-family: 'Times New Roman', serif">
+        {{ showInstallSize ? 'Without Install' : 'Display Install' }}
       </button>
       <div ref="chart" style="width: 100%; height: 500px;" />
     </div>
@@ -55,10 +55,8 @@
           backgroundColor: 'transparent',
           tooltip: {
             trigger: 'item',
-            backgroundColor: '#222',
-            borderColor: '#999',
             borderWidth: 1,
-            textStyle: { color: '#fff' },
+            textStyle: { fontFamily: 'Times New Roman' },
             formatter: function (params) {
               const [reviews, rating, appName, installs] = params.data;
               return `
@@ -68,6 +66,13 @@
                  Installs: ${Number(installs).toLocaleString()}
               `;
             }
+          },
+          grid: {
+            left: '7%',
+            right: '23%',
+            top: '10%',
+            bottom: '30%',
+            containLabel: true
           },
           xAxis: {
             type: 'log',
@@ -79,17 +84,31 @@
                 if (value >= 1_000_000) return value / 1_000_000 + 'M';
                 if (value >= 1_000) return value / 1_000 + 'K';
                 return value;
-              }
+              },
+              fontFamily: 'Times New Roman'
+            },
+            nameTextStyle: {
+              fontFamily: 'Times New Roman',
+              fontSize: 18,
+              color: '#ffffff'
             },
             min: 1,
-            splitLine: { lineStyle: { color: '#444' } }
+            splitLine: { lineStyle: { color: '#ffffff' } }
           },
           yAxis: {
             type: 'value',
             name: 'Rating',
             nameTextStyle: { color: '#fff' },
-            axisLabel: { color: '#fff' },
-            splitLine: { lineStyle: { color: '#444' } },
+            axisLabel: { 
+              color: '#fff',
+              fontFamily: 'Times New Roman'
+            },
+            nameTextStyle: {
+              fontFamily: 'Times New Roman',
+              fontSize: 18,
+              color: '#ffffff'
+            },
+            splitLine: { lineStyle: { color: '#ffffff' } },
             min: 0,
             max: 5
           },
@@ -98,8 +117,8 @@
             {
               type: 'slider',
               xAxisIndex: 0,
+              top: 370,
               height: 20,
-              bottom: 0,
               handleStyle: {
                 color: '#aaa',
                 shadowBlur: 6,
@@ -123,9 +142,9 @@
               itemStyle: {
                 color: params => {
                   const rating = params.data[1];
-                  if (rating >= 4.5) return '#4caf50';
-                  else if (rating >= 4.0) return '#ffca28';
-                  else return '#e53935';
+                  if (rating >= 4.5) return '#d67573';
+                  else if (rating >= 4.0) return '#f8e8cf';
+                  else return '#6091ab';
                 },
                 opacity: 0.8,
                 shadowBlur: 10,
@@ -140,4 +159,9 @@
     }
   };
   </script>
-  
+
+<style scoped>
+.chart-container {
+  background-color: #67605f;
+}
+</style>
